@@ -1,0 +1,44 @@
+#!/bin/bash
+
+base=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
+
+
+print_usage() {
+    echo "Usage: $0 -v version -n name -s source_directory [ -d destination_directory ]"
+}
+
+while getopts "v:n:d:" OPTION;do
+    case $OPTION in
+        v) ver="$OPTARG";;
+        n) name="$OPTARG";;
+        d) dst="$OPTARG";;
+        s) src="$OPTARG";;
+        h) print_usage;;
+    esac
+done
+
+[ -z "$ver" -o -z "$name" ] && { print_usage; exit 2; }
+[ -d "$src" ] || { echo "$src does not exist" >&2; exit 2; }
+
+dst=${dst:-/tmp/$name}
+
+
+
+[ -d $dst ] || mkdir -p $dst
+
+docker run -ti \
+    -v $src:/src \
+    -v $dst:/dst/ \
+    --rm librevo/fpm \
+    fpm -s dir -t deb \
+        -n $name \
+        -m "Tomasz Cholewa <tomasz.cholewa@librevo.pl>" \
+        -v $ver \
+        -p /dst  \
+        -C /src  \
+        .
+
+
+echo "Package ready: $(ls $dst/${name}*${ver}*.deb)"
+
+
